@@ -36,6 +36,7 @@ class Habit(models.Model):
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='habits')
+    local_id = models.CharField(max_length=50, unique=True, null=True, blank=True)
     name = models.CharField(max_length=255)
     color = models.CharField(max_length=7, help_text='Hex color code (e.g. #FF5733)')
     target_goal = models.PositiveIntegerField()
@@ -61,6 +62,7 @@ class HabitLog(models.Model):
     ]
 
     habit = models.ForeignKey(Habit, on_delete=models.CASCADE, related_name='logs')
+    local_id = models.CharField(max_length=50, unique=True, null=True, blank=True)
     date = models.DateField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES)
 

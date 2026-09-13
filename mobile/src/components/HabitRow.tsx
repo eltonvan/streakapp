@@ -1,8 +1,10 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Svg, { Circle as SvgCircle, Path as SvgPath } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
+import { useMemo } from 'react';
 import { palette, spacing, radius } from '../theme/theme';
 import { useHabitStore } from '../store/useHabitStore';
+import { calculateCurrentStreak } from '../utils/streakEngine';
 import type { LocalHabitRow, LocalHabitLogRow } from '../database/db';
 
 interface HabitRowProps {
@@ -46,6 +48,16 @@ function DayIcon({ cx, cy, status, color }: { cx: number; cy: number; status: st
 }
 
 export default function HabitRow({ habit, weekLogs }: HabitRowProps) {
+  const allLogs = useHabitStore((s) => s.logs);
+  const habitLogs = useMemo(
+    () => allLogs.filter((l) => l.habit_id === habit.id),
+    [allLogs, habit.id],
+  );
+  const streak = useMemo(
+    () => calculateCurrentStreak(habit, habitLogs),
+    [habit, habitLogs],
+  );
+
   const weekDates = getWeekDates();
   const dateMap = new Map<string, string>();
   for (const log of weekLogs) {
@@ -71,7 +83,13 @@ export default function HabitRow({ habit, weekLogs }: HabitRowProps) {
   return (
     <View style={styles.card}>
       <View style={styles.header}>
-        <Text style={styles.habitName}>{habit.name}</Text>
+        <View style={styles.nameRow}>
+          <Text style={styles.habitName}>{habit.name}</Text>
+          <View style={[styles.streakBadge, { backgroundColor: habit.color + '20' }]}>
+            <Text style={[styles.streakText, { color: habit.color }]}>{streak}</Text>
+            <Text style={styles.streakUnit}>day</Text>
+          </View>
+        </View>
         <TouchableOpacity
           style={[styles.logButton, isCompletedToday && styles.logButtonDone]}
           onPress={handleLogToday}
@@ -113,11 +131,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.sm,
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: spacing.sm,
+  },
   habitName: {
     color: palette.white,
     fontSize: 16,
     fontWeight: '600',
-    flex: 1,
+  },
+  streakBadge: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.sm,
+    gap: 3,
+  },
+  streakText: {
+    fontSize: 16,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+  },
+  streakUnit: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: palette.textSecondary,
   },
   logButton: {
     backgroundColor: palette.white,

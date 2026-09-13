@@ -1,5 +1,6 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from .models import Habit, HabitLog
 from .serializers import HabitSerializer, HabitLogSerializer
 
@@ -35,3 +36,48 @@ class HabitLogViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return HabitLog.objects.filter(habit__user=self.request.user)
+
+
+class BulkSyncView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        habits_data = request.data.get('habits', [])
+        logs_data = request.data.get('logs', [])
+
+        habit_map = {}
+        for item in habits_data:
+            local_id = item.get('id')
+            habit, _ = Habit.objects.update_or_create(
+                local_id=local_id,
+                user=user,
+                defaults={
+                    'user': user,
+                    'name': item.get('name', ''),
+                    'color': item.get('color', '#000000'),
+                    'target_goal': int(item.get('target_goal', 0)),
+                    'saver_goal': int(item.get('saver_goal', 0)),
+                    'type': item.get('type', 'standard'),
+                },
+            )
+            habit_map[local_id] = habit
+
+        for item in logs_data:
+            local_id = item.get('id')
+            habit_local_id = item.get('habit_id')
+            habit = habit_map.get(habit_local_id)
+
+            if habit is None:
+                continue
+
+            HabitLog.objects.update_or_create(
+                local_id=local_id,
+                defaults={
+                    'habit': habit,
+                    'date': item.get('date'),
+                    'status': item.get('status', 'completed'),
+                },
+            )
+
+        return Response({'message': 'Sync completed successfully.'}, status=status.HTTP_200_OK)

@@ -8,10 +8,13 @@ import {
   type LocalHabitRow,
   type LocalHabitLogRow,
 } from '../database/db';
+import type { SubscriptionTier } from '../services/purchases';
 
 interface HabitStore {
   habits: LocalHabitRow[];
   logs: LocalHabitLogRow[];
+  subscriptionTier: SubscriptionTier;
+  setSubscriptionTier: (tier: SubscriptionTier) => void;
   loadData: () => Promise<void>;
   addHabit: (params: {
     name: string;
@@ -30,6 +33,9 @@ interface HabitStore {
 export const useHabitStore = create<HabitStore>((set) => ({
   habits: [],
   logs: [],
+  subscriptionTier: 'free',
+
+  setSubscriptionTier: (tier) => set({ subscriptionTier: tier }),
 
   loadData: async () => {
     await initDatabase();

@@ -2,7 +2,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import HomeScreen from '../screens/HomeScreen';
+import HomeStack from './HomeStack';
 import ReportScreen from '../screens/ReportScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import { palette, radius } from '../theme/theme';
@@ -77,7 +77,7 @@ export default function TabNavigator() {
         headerShown: false,
       }}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
+      <Tab.Screen name="Home" component={HomeStack} />
       <Tab.Screen name="Report" component={ReportScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>

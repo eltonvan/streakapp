@@ -102,3 +102,33 @@ export async function getAllLogs(): Promise<LocalHabitLogRow[]> {
   const database = await getDB();
   return database.getAllAsync<LocalHabitLogRow>('SELECT * FROM LocalHabitLog ORDER BY date DESC');
 }
+
+export async function getUnsyncedHabits(): Promise<LocalHabitRow[]> {
+  const database = await getDB();
+  return database.getAllAsync<LocalHabitRow>('SELECT * FROM LocalHabit WHERE is_synced = 0');
+}
+
+export async function getUnsyncedLogs(): Promise<LocalHabitLogRow[]> {
+  const database = await getDB();
+  return database.getAllAsync<LocalHabitLogRow>('SELECT * FROM LocalHabitLog WHERE is_synced = 0');
+}
+
+export async function markHabitsSynced(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const database = await getDB();
+  const placeholders = ids.map(() => '?').join(',');
+  await database.runAsync(
+    `UPDATE LocalHabit SET is_synced = 1 WHERE id IN (${placeholders})`,
+    ids,
+  );
+}
+
+export async function markLogsSynced(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const database = await getDB();
+  const placeholders = ids.map(() => '?').join(',');
+  await database.runAsync(
+    `UPDATE LocalHabitLog SET is_synced = 1 WHERE id IN (${placeholders})`,
+    ids,
+  );
+}
