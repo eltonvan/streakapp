@@ -5,7 +5,9 @@ import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { palette, spacing } from './src/theme/theme';
 import TabNavigator from './src/navigation/TabNavigator';
+import AuthStack from './src/navigation/AuthStack';
 import { useHabitStore } from './src/store/useHabitStore';
+import { useAuthStore } from './src/store/useAuthStore';
 import { syncWithServer } from './src/services/syncService';
 
 const DarkTheme = {
@@ -25,11 +27,16 @@ const DarkTheme = {
 export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const loadData = useHabitStore((s) => s.loadData);
+  const loadToken = useAuthStore((s) => s.loadToken);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   useEffect(() => {
     const init = async () => {
-      await loadData();
-      await syncWithServer();
+      await loadToken();
+      if (useAuthStore.getState().isAuthenticated) {
+        await loadData();
+        await syncWithServer();
+      }
       setIsLoading(false);
     };
     init();
@@ -49,7 +56,7 @@ export default function App() {
     <SafeAreaProvider>
       <NavigationContainer theme={DarkTheme}>
         <StatusBar style="light" />
-        <TabNavigator />
+        {isAuthenticated ? <TabNavigator /> : <AuthStack />}
       </NavigationContainer>
     </SafeAreaProvider>
   );

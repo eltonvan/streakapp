@@ -1,3 +1,4 @@
+import * as SecureStore from 'expo-secure-store';
 import {
   getUnsyncedHabits,
   getUnsyncedLogs,
@@ -6,6 +7,7 @@ import {
 } from '../database/db';
 
 const BASE_URL = 'http://192.168.1.X:8000/api';
+const TOKEN_KEY = 'auth_token';
 
 export async function syncWithServer(): Promise<boolean> {
   try {
@@ -16,9 +18,17 @@ export async function syncWithServer(): Promise<boolean> {
       return true;
     }
 
+    const token = await SecureStore.getItemAsync(TOKEN_KEY);
+    if (!token) {
+      return true;
+    }
+
     const response = await fetch(`${BASE_URL}/bulk-sync/`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${token}`,
+      },
       body: JSON.stringify({
         habits: habits.map((h) => ({
           id: h.id,

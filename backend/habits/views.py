@@ -1,6 +1,8 @@
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status, generics, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.authtoken.models import Token
+from django.contrib.auth.models import User
 from .models import Habit, HabitLog
 from .serializers import HabitSerializer, HabitLogSerializer
 
@@ -81,3 +83,31 @@ class BulkSyncView(APIView):
             )
 
         return Response({'message': 'Sync completed successfully.'}, status=status.HTTP_200_OK)
+
+
+class RegisterSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+
+    def create(self, validated_data):
+        user = User.objects.create_user(
+            username=validated_data['username'],
+            password=validated_data['password'],
+        )
+        Token.objects.create(user=user)
+        return user
+
+
+class RegisterView(generics.CreateAPIView):
+    serializer_class = RegisterSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        token = Token.objects.get(user=user)
+        return Response(
+            {'token': token.key, 'username': user.username},
+            status=status.HTTP_201_CREATED,
+        )
