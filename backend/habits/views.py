@@ -1,4 +1,4 @@
-from rest_framework import viewsets, permissions, status, generics, serializers
+from rest_framework import viewsets, permissions, status, generics, serializers, throttling
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.authtoken.models import Token
@@ -86,8 +86,13 @@ class BulkSyncView(APIView):
 
 
 class RegisterSerializer(serializers.Serializer):
-    username = serializers.CharField()
-    password = serializers.CharField(write_only=True)
+    username = serializers.CharField(min_length=3, max_length=150)
+    password = serializers.CharField(min_length=8, write_only=True)
+
+    def validate_username(self, value):
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError('A user with that username already exists.')
+        return value
 
     def create(self, validated_data):
         user = User.objects.create_user(
@@ -101,6 +106,7 @@ class RegisterSerializer(serializers.Serializer):
 class RegisterView(generics.CreateAPIView):
     serializer_class = RegisterSerializer
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [throttling.AnonRateThrottle]
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

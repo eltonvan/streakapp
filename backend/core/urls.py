@@ -16,10 +16,16 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from rest_framework.authtoken.views import obtain_auth_token
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.throttling import AnonRateThrottle
+
+
+class ThrottledObtainAuthToken(ObtainAuthToken):
+    throttle_classes = [AnonRateThrottle]
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/login/', obtain_auth_token, name='api-login'),
+    path('api/login/', ThrottledObtainAuthToken.as_view(), name='api-login'),
     path('api/', include('habits.urls')),
 ]

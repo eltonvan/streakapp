@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { StyleSheet, FlatList, TouchableOpacity, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -9,8 +9,16 @@ import PaywallModal from './PaywallModal';
 import type { HomeStackParamList } from '../navigation/HomeStack';
 
 type Nav = NativeStackNavigationProp<HomeStackParamList>;
-
 const ACCENT = '#A855F7';
+
+function EmptyList() {
+  return (
+    <View style={styles.empty}>
+      <Text style={styles.emptyText}>No habits yet</Text>
+      <Text style={styles.emptySubtext}>Tap + to create your first habit</Text>
+    </View>
+  );
+}
 
 export default function HomeScreen() {
   const navigation = useNavigation<Nav>();
@@ -21,20 +29,24 @@ export default function HomeScreen() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
-  const handleFabPress = () => {
+  const handleFabPress = useCallback(() => {
     if (habits.length >= 3) {
       setShowPaywall(true);
     } else {
       navigation.navigate('AddHabit');
     }
-  };
+  }, [habits.length, navigation]);
 
-  const today = new Date();
-  const formatDate = (d: Date) => d.toISOString().split('T')[0];
-  const sevenDaysAgo = formatDate(new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000));
-  const todayStr = formatDate(today);
+  const { todayStr, sevenDaysAgo } = useMemo(() => {
+    const today = new Date();
+    const fmt = (d: Date) => d.toISOString().split('T')[0];
+    return {
+      todayStr: fmt(today),
+      sevenDaysAgo: fmt(new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000)),
+    };
+  }, []);
 
   const logsByHabit = useMemo(() => {
     const map = new Map<string, typeof logs>();
@@ -48,21 +60,25 @@ export default function HomeScreen() {
     return map;
   }, [logs, sevenDaysAgo, todayStr]);
 
+  const emptyLogs: typeof logs = useMemo(() => [], []);
+
+  const renderItem = useCallback(
+    ({ item }: { item: (typeof habits)[number] }) => (
+      <HabitRow habit={item} weekLogs={logsByHabit.get(item.id) || emptyLogs} />
+    ),
+    [logsByHabit, emptyLogs],
+  );
+
+  const keyExtractor = useCallback((item: (typeof habits)[number]) => item.id, []);
+
   return (
     <View style={styles.container}>
       <FlatList
         data={habits}
-        keyExtractor={(item) => item.id}
+        keyExtractor={keyExtractor}
         contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => (
-          <HabitRow habit={item} weekLogs={logsByHabit.get(item.id) || []} />
-        )}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>No habits yet</Text>
-            <Text style={styles.emptySubtext}>Tap + to create your first habit</Text>
-          </View>
-        }
+        renderItem={renderItem}
+        ListEmptyComponent={EmptyList}
       />
 
       <TouchableOpacity
